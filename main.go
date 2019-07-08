@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,27 +10,6 @@ import (
 	"strings"
 	"time"
 )
-
-// Accept path from standard args indicated by -p and add it to the local file
-func addPath() {
-	if len(os.Args) > 1 && os.Args[1] == "-p" {
-		path := strings.Replace(os.Args[2], `"`, "", -1) + "\n"
-		if runtime.GOOS == "windows" && string(path[len(path)-1]) != "\\" {
-			path += "\\"
-		}
-
-		f, err := os.OpenFile("./paths", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
-		if err != nil {
-			panic(err)
-		}
-		defer f.Close()
-
-		w := bufio.NewWriter(f)
-		n, err := w.WriteString(path)
-		fmt.Printf("wrote %d bytes\n", n)
-		w.Flush()
-	}
-}
 
 func copy(src, dst string) (int64, error) {
 	sourceFileStat, err := os.Stat(src)
@@ -113,47 +91,44 @@ func cleanup(path string) {
 }
 
 func xtract() {
-	addPath()
+	// addPath()
 
-	f, err := os.Open("./paths")
+	dir, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		originDir := scanner.Text()
-		if originDir == "\\" {
-			continue
-		}
-		if runtime.GOOS == "windows" {
-			originDir += "\\"
-		}
-		originFile := findFile(originDir)
-		_, originFileName := filepath.Split(originFile)
+	originDir := dir
+	if originDir == "\\" {
+		panic("Empty path")
+	}
+	if runtime.GOOS == "windows" {
+		originDir += "\\"
+	}
+	originFile := findFile(originDir)
+	_, originFileName := filepath.Split(originFile)
 
-		destDir := originDir + "00_SS/"
+	destDir := originDir + "00_SS/"
 
-		if _, err := os.Stat(destDir); os.IsNotExist(err) {
-			err = os.Mkdir(destDir, 0700)
+	if _, err := os.Stat(destDir); os.IsNotExist(err) {
+		err = os.Mkdir(destDir, 0700)
 
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		cleanup(destDir)
-		ext := filepath.Ext(originFileName)
-		cleanFile := strings.Replace(originFileName, ext, "", -1)
-
-		currentTime := time.Now()
-		destFile := destDir + cleanFile + "_" + currentTime.Format("20060102150405") + ext
-
-		_, err := copy(originFile, destFile)
 		if err != nil {
 			panic(err)
 		}
 	}
+
+	cleanup(destDir)
+	ext := filepath.Ext(originFileName)
+	cleanFile := strings.Replace(originFileName, ext, "", -1)
+
+	currentTime := time.Now()
+	destFile := destDir + cleanFile + "_" + currentTime.Format("20060102150405") + ext
+
+	_, err = copy(originFile, destFile)
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 func main() {
