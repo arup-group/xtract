@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -14,7 +15,10 @@ import (
 // Accept path from standard args indicated by -p and add it to the local file
 func addPath() {
 	if len(os.Args) > 1 && os.Args[1] == "-p" {
-		path := os.Args[2] + "\n"
+		path := strings.Replace(os.Args[2], `"`, "", -1) + "\n"
+		if runtime.GOOS == "windows" && string(path[len(path)-1]) != "\\" {
+			path += "\\"
+		}
 
 		f, err := os.OpenFile("./paths", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
@@ -55,6 +59,7 @@ func copy(src, dst string) (int64, error) {
 }
 
 func findFile(originDir string) string {
+	fmt.Println(originDir)
 	files, err := ioutil.ReadDir(originDir)
 	if err != nil {
 		panic(err)
@@ -118,9 +123,15 @@ func xtract() {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		originDir := scanner.Text()
-
+		if originDir == "\\" {
+			continue
+		}
+		if runtime.GOOS == "windows" {
+			originDir += "\\"
+		}
 		originFile := findFile(originDir)
 		_, originFileName := filepath.Split(originFile)
+
 		destDir := originDir + "00_SS/"
 
 		if _, err := os.Stat(destDir); os.IsNotExist(err) {
