@@ -74,7 +74,12 @@ func cleanup(path string) {
 			}
 		}
 		// Move to folder tagged with modTime
-		destDir := path + modTime.Format("2006-01-02 15:04:05") + "/"
+		destDir := path + modTime.Format("20060102150405")
+		if runtime.GOOS == "windows" {
+			destDir += "\\"
+		} else {
+			destDir += "/"
+		}
 		if _, err := os.Stat(destDir); os.IsNotExist(err) {
 			err = os.Mkdir(destDir, 0700)
 
@@ -107,7 +112,12 @@ func xtract() {
 	originFile := findFile(originDir)
 	_, originFileName := filepath.Split(originFile)
 
-	destDir := originDir + "00_SS/"
+	destDir := originDir + "00_SS"
+	if runtime.GOOS == "windows" {
+		destDir += "\\"
+	} else {
+		destDir += "/"
+	}
 
 	if _, err := os.Stat(destDir); os.IsNotExist(err) {
 		err = os.Mkdir(destDir, 0700)
